@@ -1,16 +1,15 @@
 #!/bin/bash
 
-# Variables for default settings and shared IP
-PANEL_DIR="/var/www/pterodactyl"
+# Variables for default settings
 PANEL_DB="panel"
 PANEL_USER="paneluser"
 PANEL_PASS="intel-i7"
 DEFAULT_EMAIL="intel-i7@gmail.com"
-WINGS_VERSION="1.8.0" # Example, use the latest version
+WINGS_VERSION="1.8.0"
 
-# Ask if the user is tunneling
-echo "Are you tunneling the Pterodactyl Panel (e.g., using an external IP or reverse proxy)? (yes/no)"
-read TUNNELING
+# Ask if you're using a shared or dedicated server
+echo "Is your server shared (behind a proxy or using a shared IP)? (yes/no)"
+read SHARED_SERVER
 
 # Install required packages
 echo "Updating system and installing dependencies..."
@@ -28,8 +27,8 @@ cd /var/www
 git clone https://github.com/pterodactyl/panel.git pterodactyl
 cd pterodactyl
 
-# Set correct permissions for Panel directory
-echo "Setting permissions for Panel directory..."
+# Set permissions for Panel directory
+echo "Setting permissions for the Panel directory..."
 chown -R www-data:www-data /var/www/pterodactyl
 chmod -R 755 /var/www/pterodactyl
 
@@ -62,12 +61,12 @@ php artisan key:generate
 echo "Setting up default Pterodactyl admin user..."
 php artisan p:user:make --email=$DEFAULT_EMAIL --password=$PANEL_PASS --username="admin" --admin=1
 
-# Ask for server domain or IP address if tunneling
-if [ "$TUNNELING" == "yes" ]; then
-  echo "Please enter your external domain or IP address (e.g., panel.yourdomain.com or your.external.ip):"
+# Ask if using shared or dedicated server
+if [ "$SHARED_SERVER" == "yes" ]; then
+  echo "You are using a shared server. Please enter the external IP or domain name (e.g., panel.yourdomain.com or your.external.ip):"
   read SERVER_DOMAIN
 else
-  SERVER_DOMAIN="localhost"
+  SERVER_DOMAIN="localhost"  # Default to localhost for dedicated servers
 fi
 
 # Configure Nginx for the specified domain/IP
@@ -103,13 +102,13 @@ echo "Testing Nginx configuration..."
 nginx -t
 systemctl restart nginx
 
-# Set up SSL with Let's Encrypt (optional, for production environments)
-if [ "$TUNNELING" == "yes" ]; then
-  echo "Setting up SSL with Let's Encrypt (optional)..."
+# Optional SSL setup if using shared server
+if [ "$SHARED_SERVER" == "yes" ]; then
+  echo "Setting up SSL with Let's Encrypt (optional, for production environments)..."
   apt install -y certbot python3-certbot-nginx
   certbot --nginx -d $SERVER_DOMAIN --non-interactive --agree-tos -m $DEFAULT_EMAIL
 else
-  echo "Skipping SSL setup as you are not tunneling."
+  echo "Skipping SSL setup as you are using a dedicated server."
 fi
 
 # Install Wings
@@ -119,7 +118,7 @@ curl -sSL "https://github.com/pterodactyl/wings/releases/download/v$WINGS_VERSIO
 chmod +x wings
 mv wings /usr/local/bin/wings
 
-# Create the Wings configuration directory
+# Set up Wings configuration
 echo "Setting up Wings configuration..."
 mkdir -p /etc/pterodactyl
 wings --help # This will ensure Wings is working and show any additional setup prompts
