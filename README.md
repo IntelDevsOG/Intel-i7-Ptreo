@@ -20,6 +20,5 @@ Clone the repository to your server:
 git clone https://github.com/IntelDevsOG/Intel-i7-Ptreo.git
 cd Intel-i7-Ptreo
 
-chmod +x install_pterodactyl.sh
-
-./install_pterodactyl.sh
+chmod +x install.sh
+sudo ./install.sh
